@@ -144,6 +144,10 @@
     text-align: center;
   }
 
+  article a {
+    align-self: center;
+  }
+
   article summary::first-letter {
     font-size: 2em;
     font-weight: bold;
