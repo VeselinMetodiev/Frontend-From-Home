@@ -1,0 +1,16 @@
+{
+  "name": "Flexbox-project-blogsite",
+  "version": "0.0.1",
+  "description": "Practising with Flexbox",
+  "main": "index.js",
+  "repository": "https://github.com/VeselinMetodiev/flexbox-project.git",
+  "author": "Veselin Metodiev",
+  "license": "Apache-2.0",
+  "scripts": {
+    "start": "lite-server"
+  },
+  "devDependencies": {
+    "lite-server": "^2.6.1"
+  },
+  "private": false
+}
