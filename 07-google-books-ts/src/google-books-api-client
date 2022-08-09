@@ -1,0 +1,15 @@
+const API_BASE_URL = "https://www.googleapis.com/books/v1/volumes?q=";
+
+export interface BooksApiClient {
+    getBooks(searchWord: string);
+}
+
+class BooksApiClientImpl implements BooksApiClient {
+    async getBooks(searchWord: string) {
+        await fetch(
+            `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(
+              searchWord
+            )}`
+          );
+    }
+}
