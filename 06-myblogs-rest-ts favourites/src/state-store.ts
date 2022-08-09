@@ -1,4 +1,5 @@
 import { Post } from "./posts.js";
+import { UserState } from "./state-enums.js";
 import { FormState, ValidationConfig, Validators } from "./validate.js";
 
 export interface AppState {
@@ -7,6 +8,7 @@ export interface AppState {
     postFormValidationConfig: ValidationConfig<Post>,
     postFormErrors: string[],
     postFormInputStates: FormState<Post>
+    userState: UserState
 }
 
 export const AppStateStore: AppState = {
@@ -20,5 +22,6 @@ export const AppStateStore: AppState = {
         imageUrl: [Validators.required(), Validators.pattern(/https:\/\/(www)?(.\w+.|\/|)+(png|jpg|jpeg)/)]
     },
     postFormErrors: [],
-    postFormInputStates: {}
+    postFormInputStates: {},
+    userState: UserState.ALL,
 }

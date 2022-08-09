@@ -12,6 +12,7 @@ export interface BlogsApiClient {
     deletePostById(id: IdType): Promise<Post>;
     addPostToFavourites(post: Post): Promise<Post>;
     getAllFavouritePosts(): Promise<Post[]>;
+    deletePostFromFavouritesById(id: IdType): Promise<Post>;
 }
 
 class BlogApiClientImpl implements BlogsApiClient {
@@ -59,6 +60,12 @@ class BlogApiClientImpl implements BlogsApiClient {
 
     async deletePostById(id: number): Promise<Post> {
         return this.handleRequest(`${API_BASE_URL}/${id}`, {
+            method: 'DELETE'
+        });
+    }
+
+    async deletePostFromFavouritesById(id: number): Promise<Post> {
+        return this.handleRequest(`${API_FAVOURITES_URL}/${id}`, {
             method: 'DELETE'
         });
     }

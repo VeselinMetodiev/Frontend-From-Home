@@ -3,7 +3,7 @@ import { AppStateStore } from "./state-store.js";
 import { BlogsAPI } from "./blogs-api-client.js";
 import { Post } from "./posts.js";
 import { FormFieldDict, IdType } from "./shared-types.js";
-import { ChangedStatus, ValidationStatus } from "./state-enums.js";
+import { ChangedStatus, UserState, ValidationStatus } from "./state-enums.js";
 
 class BlogsController {
   favouritesSection = document.getElementById("favourite-posts")!;
@@ -12,6 +12,7 @@ class BlogsController {
   protected addPostForm = document.getElementById("add-post-form")! as HTMLFormElement;
   resetButton = document.getElementById("form-reset-button")! as HTMLButtonElement;
   favouritesButton = document.getElementById("favourites-button")! as HTMLButtonElement;
+  favPostsIds : IdType[] = [];
 
   initFormState(formElement: HTMLFormElement){
     const formData = new FormData(formElement);
@@ -30,16 +31,15 @@ class BlogsController {
     this.resetButton.addEventListener("click", this.resetForm);
     this.addPostForm.addEventListener("change", this.validateForm, true);
     this.addPostForm.addEventListener("keyup", this.changeFormState);
-    this.favouritesButton.addEventListener("click", () => { this.showFavouritePosts(this.postsSection); } );
+    this.favouritesButton.addEventListener("click", () => { this.favouriteOrAllPosts() });
 
     try {
-      const allPosts = await BlogsAPI.getAllPosts();
-      AppStateStore.allPosts = allPosts;
-      this.showPosts(allPosts);
+      this.fillfavPostsArray()
+      this.showAllPosts();
     } catch (err) {
       this.showError(err);
     }
-
+    
     this.initFormState(this.addPostForm);
   }
 
@@ -47,13 +47,52 @@ class BlogsController {
     posts.forEach((post) => this.addPostDOM(post));
   }
 
+  favouriteOrAllPosts(){
+    console.log(AppStateStore.userState);
+    if(AppStateStore.userState === UserState.ALL){
+      this.showFavouritePosts(this.postsSection);
+      AppStateStore.userState = UserState.FAVOURITE;
+    } else if(AppStateStore.userState === UserState.FAVOURITE){
+      AppStateStore.userState = UserState.ALL;
+      this.favouritesButton.innerText = "Favourites"
+      this.favouritesButton.innerHTML += `<i class="material-icons right">cloud</i>`;
+      this.postsSection.innerHTML = '';
+      this.showAllPosts();
+    }
+  }
+
+  async fillfavPostsArray(){
+    const favPosts = await BlogsAPI.getAllFavouritePosts();
+      favPosts.forEach(favPost => {
+          this.favPostsIds.push(favPost.id);
+        })
+  }
+
+  async showAllPosts() {
+    const allPosts = await BlogsAPI.getAllPosts();
+      AppStateStore.allPosts = allPosts;
+      this.showPosts(allPosts);
+      allPosts.forEach(post => {
+        this.favPostsIds.forEach(id => {
+          if(post.id === id){
+            this.favPostsIds.push(post.id);
+            const currentButton = document.querySelector(`#favourite${post.id!.toString()}`);
+            (currentButton as HTMLElement).innerText = 'Remove from <3';
+            currentButton?.setAttribute('class', 'btn waves-effect waves-light orange lighten-1');
+          }
+        })
+      })
+      return allPosts;
+  }
+
   async showFavouritePosts(section: HTMLElement){
-    const favouritePosts = await BlogsAPI.getAllFavouritePosts();
-    console.log(favouritePosts);
-    section.innerHTML = '';
+    section.innerHTML = ''; //Make section empty, then fill it with favourite posts
+    const favouritePosts = await BlogsAPI.getAllFavouritePosts(); //fetch the posts
     this.showPosts(favouritePosts);
-    
-    
+    console.log(this.favouritesButton)
+    this.favouritesButton.innerText = 'Back to All Posts';
+    const favButtons = document.querySelectorAll('.favButtons').forEach((button) => (button as HTMLElement).innerText = 'Remove From <3');
+
   }
 
   showError(err: any) {
@@ -104,10 +143,10 @@ class BlogsController {
         }">Delete
           <i class="material-icons right">clear</i>
         </button>
-        <button class="btn waves-effect waves-light red lighten-1" type="button" id="favourite${
+        <button class="favButtons btn waves-effect waves-light red lighten-1" type="button" id="favourite${
           post.id
         }">Add to <3
-          <i class="material-icons right">cloud</i>
+          <i class="material-icons right">grade</i>
         </button>
       </div>
       </div>
@@ -120,17 +159,44 @@ class BlogsController {
       .addEventListener("click", (event) => this.editPost(post));
     postElem
       .querySelector(`#favourite${post.id}`)!
-      .addEventListener("click", (event) => this.addPostToFavourites(post));
+      .addEventListener("click", (event) => this.addOrRemoveFavourites(post, post.id));
   }
 
-  async addPostToFavourites(post: Post) {
-    console.log("Adding to favourites.")
+  async addOrRemoveFavourites(post: Post, postId: IdType) {
+    const currentButton = document.querySelector(`#favourite${postId!.toString()}`);
+    console.log((currentButton as HTMLElement).innerText);
+      //currentButton!.setAttribute('disabled', 'true');
+    if(AppStateStore.userState === UserState.ALL && (currentButton as HTMLElement).innerText.toLowerCase().includes('add')){
+    console.log("Add post to favourites.")
     try {
-      const created = await BlogsAPI.addPostToFavourites(post);
-      this.addPostDOM(created);
+      this.favPostsIds.push(postId);
+      await BlogsAPI.addPostToFavourites(post);
+      console.log(currentButton);
+      (currentButton as HTMLElement).innerText = 'Remove From <3';
+      currentButton?.setAttribute('class', 'btn waves-effect waves-light orange lighten-1');
     } catch(err){
       this.showError(err);
     }
+  } else if(AppStateStore.userState === UserState.ALL && (currentButton as HTMLElement).innerText.toLowerCase().includes('remove')){
+    try {
+    console.log('Remove from favourites 2');
+    (currentButton as HTMLElement).innerText = 'Add to <3';
+    currentButton?.setAttribute('class', 'btn waves-effect waves-light red lighten-1');
+    await BlogsAPI.deletePostFromFavouritesById(postId);
+    this.favPostsIds = this.favPostsIds.filter(function(value){ 
+      return value !== postId;
+  });
+    } catch(err){
+      this.showError(err);
+    }
+  } else if(AppStateStore.userState === UserState.FAVOURITE) {
+    console.log('Remove from favourites');
+    await BlogsAPI.deletePostFromFavouritesById(postId);
+    document.getElementById(postId!.toString())?.remove();
+    this.favPostsIds = this.favPostsIds.filter(function(value){ 
+      return value !== postId;
+  });
+  }
   }
 
   editPost(post: Post) {

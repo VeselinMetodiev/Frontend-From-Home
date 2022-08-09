@@ -7,3 +7,8 @@ export enum ChangedStatus {
     PRISTINE,
     DIRTY
 }
+
+export enum UserState {
+    ALL = 'all',
+    FAVOURITE = 'favourites'
+}
